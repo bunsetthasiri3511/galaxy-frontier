@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#070b1d">
+<title>GALAXY FRONTIER</title>
+<style>
+:root{color-scheme:dark;--cyan:#65efff;--pink:#ff557d;--gold:#ffd66b}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050817;touch-action:none;overscroll-behavior:none;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+body{display:flex;align-items:center;justify-content:center}
+#game{position:relative;width:100vw;height:100dvh;max-width:560px;overflow:hidden;background:#080d25;isolation:isolate}
+canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none}
+#hud{position:absolute;inset:env(safe-area-inset-top) 0 auto;padding:12px 14px 0;pointer-events:none;text-shadow:0 2px #10142d}
+.hudrow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:clamp(10px,2.8vw,13px);font-weight:900;letter-spacing:.08em;color:var(--cyan)}
+#score{color:var(--gold)}
+#healthWrap{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:10px;color:#ff8298}
+#health{height:7px;flex:1;max-width:190px;background:#381d39;border:1px solid #8d425f;overflow:hidden}
+#healthFill{height:100%;width:100%;background:linear-gradient(90deg,#ff426e,#ff9a79)}
+#bossWrap{display:none;margin-top:7px;color:#ff7896;font-size:10px}
+#bossBar{height:6px;background:#3b1b35;margin-top:3px;border:1px solid #a13b67}
+#bossFill{height:100%;width:100%;background:#ff477d}
+#topBtns{position:absolute;top:calc(env(safe-area-inset-top) + 9px);right:12px;display:flex;gap:7px;pointer-events:auto}
+.smallBtn{border:1px solid #45647f;background:#101c39dd;color:#c9faff;border-radius:9px;padding:7px 9px;font: bold 11px ui-monospace,monospace;touch-action:manipulation}
+#bottomUI{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 14px);left:0;right:0;display:flex;justify-content:space-between;align-items:end;padding:0 18px;pointer-events:none}
+#dragHint{font-size:10px;letter-spacing:.1em;color:#9bb5d5;background:#0b1537aa;border:1px solid #27446a;padding:8px 10px;border-radius:8px}
+.action{pointer-events:auto;width:68px;height:68px;border-radius:50%;border:2px solid #ff829c;background:#681e43aa;color:#fff;font:900 11px ui-monospace,monospace;box-shadow:0 0 18px #ff386b55;touch-action:none}
+#bombBtn{width:55px;height:55px;border-color:#7cefff;background:#123b59aa;box-shadow:0 0 16px #38dfff44;color:#aaf7ff}
+#overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(#060b20d9,#080d25ee);text-align:center}
+.panel{width:min(100%,390px);border:2px solid #3e7594;background:#0b1530f2;box-shadow:0 0 35px #28dfff22;padding:25px 20px;border-radius:14px}
+.logo{font-size:clamp(25px,8vw,39px);line-height:1.05;font-weight:1000;letter-spacing:-.06em;color:#e9fbff;text-shadow:3px 3px #176b92,0 0 18px #36ddff88}
+.logo span{color:var(--pink)}
+.sub{color:#8caacb;font-size:11px;letter-spacing:.2em;margin:10px 0 20px}
+.panel p{color:#b5c8e2;font-size:12px;line-height:1.7}
+.primary{width:100%;padding:14px 12px;margin-top:12px;border:0;border-radius:8px;background:linear-gradient(90deg,#147da4,#2353a5);color:white;font:900 14px ui-monospace,monospace;letter-spacing:.12em;box-shadow:0 4px #102b59;touch-action:manipulation}
+.secondary{background:#192b4b;border:1px solid #426487;box-shadow:none}
+.stats{display:flex;justify-content:space-around;color:#ffd66b;font-size:11px;margin:14px 0}
+.hidden{display:none!important}
+#toast{position:absolute;top:30%;left:0;right:0;text-align:center;color:#fff;font-weight:900;font-size:14px;text-shadow:0 0 12px #48eaff;pointer-events:none;opacity:0;transition:opacity .2s}
+@media (min-width:560px){#game{height:100dvh;border-left:1px solid #172d51;border-right:1px solid #172d51}}
+
+/* GALAXY FRONTIER ONLINE HUB */
+.hubBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.hubBtn{padding:11px 7px;border:1px solid #356789;border-radius:8px;background:#102443;color:#bff8ff;font:900 11px ui-monospace,monospace;letter-spacing:.04em}
+.hubBtn.gold{border-color:#9a7840;color:#ffe19a}
+.hubPanel{width:min(100%,430px);max-height:min(84dvh,720px);overflow:auto;border:2px solid #3e7594;background:#09152ff7;box-shadow:0 0 35px #28dfff22;padding:20px 16px;border-radius:14px;text-align:left}
+.hubTitle{font-size:23px;font-weight:1000;color:#e9fbff;text-shadow:2px 2px #176b92;margin:0 0 4px}
+.hubSub{font-size:10px;color:#8caacb;letter-spacing:.13em;margin-bottom:15px}
+.hubRow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #203b5e;color:#c9dff3;font-size:11px}
+.hubRow small{display:block;color:#819dbd;font-size:9px;margin-top:4px}
+.hubAction{border:1px solid #347d9c;background:#123b59;color:#c8fbff;padding:8px 10px;border-radius:7px;font:900 10px ui-monospace,monospace;white-space:nowrap}
+.hubAction:disabled{opacity:.4}
+.hubInput{width:100%;padding:11px;background:#071126;border:1px solid #345878;border-radius:7px;color:#eafaff;font:12px ui-monospace,monospace;margin:5px 0}
+.hubNotice{font-size:10px;color:#91abc9;line-height:1.6;margin:10px 0}
+.hubBack{margin-top:12px;width:100%;padding:11px;background:#192b4b;border:1px solid #426487;border-radius:7px;color:#d6eaff;font:900 11px ui-monospace,monospace}
+.hubTabs{display:flex;gap:6px;margin:8px 0 12px}.hubTab{flex:1;padding:8px 4px;background:#101f3a;border:1px solid #2e4c6d;border-radius:6px;color:#a9c7e5;font:900 9px ui-monospace,monospace}.hubTab.active{border-color:#65efff;color:#65efff;background:#12334a}
+#accountStatus{font-size:9px;color:#8eb4d7;margin-top:8px;overflow-wrap:anywhere}
+@media(max-height:650px){.hubPanel{padding:14px 12px}.hubTitle{font-size:20px}.hubRow{padding:7px 0}}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="game">
+ <canvas id="c" aria-label="Galaxy Frontier space shooter"></canvas>
+ <div id="hud">
+  <div class="hudrow"><span>GALAXY FRONTIER</span><span id="score">SCORE 000000</span></div>
+  <div id="healthWrap"><b>HULL</b><div id="health"><div id="healthFill"></div></div><b id="lives">♥ ♥ ♥</b><span id="stage">SECTOR 01</span></div>
+  <div id="bossWrap">HOSTILE COMMANDER<div id="bossBar"><div id="bossFill"></div></div></div>
+ </div>
+ <div id="topBtns"><button class="smallBtn" id="soundBtn" aria-label="Toggle sound">♫ ON</button><button class="smallBtn" id="pauseBtn">Ⅱ</button></div>
+ <div id="bottomUI"><div id="dragHint">TOUCH & DRAG TO MOVE</div><button class="action" id="bombBtn">✦<br>BOMB</button><button class="action" id="fireBtn">FIRE<br>AUTO</button></div>
+ <div id="toast"></div>
+ <div id="overlay">
+  <div class="panel" id="menu">
+   <div class="logo">GALAXY<br><span>FRONTIER</span></div>
+   <div class="sub">★ DEEP SPACE DEFENDER ★</div>
+   <p>Defend the frontier. Drag anywhere on the battlefield to pilot your fighter. Weapons fire automatically while you play.</p>
+   <div class="stats"><span>◈ TOUCH CONTROL</span><span>◈ OFFLINE READY</span></div>
+   <button class="primary" id="startBtn">START MISSION</button>
+    <div class="hubBtns"><button class="hubBtn" id="shopOpen">◈ SPACE SHOP</button><button class="hubBtn" id="upgradeOpen">✦ HANGAR / UPGRADES</button><button class="hubBtn gold" id="rankOpen">★ LEADERBOARD</button><button class="hubBtn" id="profileOpen">◉ PILOT PROFILE</button></div>
+    <div id="accountStatus">OFFLINE MODE · Connect Supabase to enable online play</div>
+   <p style="font-size:10px;color:#718baa">PORTRAIT MODE · BEST SCORE <b id="best">0</b></p>
+  </div>
+  <div class="panel hidden" id="pausePanel">
+   <div class="logo" style="font-size:30px">MISSION<br><span>PAUSED</span></div>
+   <p>Take a breath, pilot.</p><button class="primary" id="resumeBtn">RESUME</button><button class="primary secondary" id="quitBtn">END MISSION</button>
+  </div>
+  <div class="panel hidden" id="overPanel">
+   <div class="logo" style="font-size:30px">SHIP<br><span>DESTROYED</span></div>
+   <p id="resultText">The frontier awaits another pilot.</p>
+   <div class="stats"><span id="finalScore">SCORE 0</span><span id="bestResult">BEST 0</span></div>
+   <button class="primary" id="againBtn">TRY AGAIN</button><button class="primary secondary" id="homeBtn">MAIN MENU</button>
+  <div class="hubPanel hidden" id="shopPanel"><div class="hubTitle">SPACE SHOP</div><div class="hubSub">PURCHASE PERMANENT UPGRADES</div><div id="shopBalance" class="stats">CREDITS 0</div><div id="shopItems"></div><button class="hubBack" data-back>← BACK TO MENU</button></div>
+  <div class="hubPanel hidden" id="upgradePanel"><div class="hubTitle">SHIP HANGAR</div><div class="hubSub">YOUR PERMANENT SHIP SYSTEMS</div><div id="upgradeSummary"></div><button class="hubBack" data-back>← BACK TO MENU</button></div>
+  <div class="hubPanel hidden" id="rankPanel"><div class="hubTitle">LEADERBOARD</div><div class="hubSub">GLOBAL + FRIENDS RANKINGS</div><div class="hubTabs"><button class="hubTab active" data-rank="global">GLOBAL</button><button class="hubTab" data-rank="friends">FRIENDS</button></div><div id="rankRows" class="hubNotice">Connect to Supabase to load rankings.</div><button class="hubAction" id="refreshRanks">↻ REFRESH</button><button class="hubBack" data-back>← BACK TO MENU</button></div>
+  <div class="hubPanel hidden" id="profilePanel"><div class="hubTitle">PILOT PROFILE</div><div class="hubSub">YOUR FRONTIER IDENTITY</div><div id="profileSummary"></div><input class="hubInput" id="pilotName" maxlength="20" placeholder="Pilot name (2–20 characters)"><input class="hubInput" id="pilotEmail" type="email" placeholder="Email for login"><input class="hubInput" id="pilotPassword" type="password" placeholder="Password (optional; leave blank for magic link)"><button class="hubAction" id="savePilot">SAVE PILOT NAME</button><button class="hubAction" id="signIn">SIGN IN / SEND MAGIC LINK</button><button class="hubAction" id="signUp">CREATE ACCOUNT</button><button class="hubAction" id="signOut">SIGN OUT</button><input class="hubInput" id="friendCode" maxlength="12" placeholder="Friend code"><button class="hubAction" id="addFriend">ADD FRIEND</button><div id="profileMessage" class="hubNotice"></div><button class="hubBack" data-back>← BACK TO MENU</button></div>
+  </div>
+ </div>
+</div>
+<script>
+(()=>{
+'use strict';
+const canvas=document.getElementById('c'),ctx=canvas.getContext('2d',{alpha:false});
+const $=id=>document.getElementById(id);
+const overlay=$('overlay'),menu=$('menu'),pausePanel=$('pausePanel'),overPanel=$('overPanel');
+let W=360,H=640,dpr=1,last=0,raf=0,state='menu',score=0,best=+(localStorage.getItem('gf_best')||0),stage=1,elapsed=0,spawnT=0,fireT=0,bossT=0,sound=true,audio=null,bossKills=0;
+$('best').textContent=best;
+const rand=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+let stars=[],bullets=[],enemyBullets=[],enemies=[],particles=[],drops=[],boss=null;
+const player={x:180,y:530,r:12,hp:100,maxHp:100,lives:3,inv:0,fire:0,weapon:1,bomb:1,dx:0,dy:0};
+function resize(){
+ const rect=$('game').getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);
+ W=Math.max(280,rect.width);H=Math.max(440,rect.height);
+ canvas.width=Math.round(W*dpr);canvas.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+ if(!stars.length)for(let i=0;i<95;i++)stars.push({x:Math.random()*W,y:Math.random()*H,z:rand(.5,2.5),a:rand(.25,.9)});
+ player.x=clamp(player.x,20,W-20);player.y=clamp(player.y,100,H-90);
+}
+addEventListener('resize',resize);resize();
+function beep(freq=500,dur=.05,type='square',vol=.025){if(!sound)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume();let o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.value=freq;g.gain.value=vol;o.connect(g);g.connect(audio.destination);o.start();g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);o.stop(audio.currentTime+dur)}catch(e){}}
+function toast(t){$('toast').textContent=t;$('toast').style.opacity=1;clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').style.opacity=0,950)}
+function reset(){
+ score=0;stage=1;elapsed=0;spawnT=.3;fireT=0;bossT=0;bossKills=0;bullets=[];enemyBullets=[];enemies=[];particles=[];drops=[];boss=null;
+ Object.assign(player,{x:W/2,y:H*.78,r:12,hp:100,lives:3,inv:1.5,fire:0,weapon:1,bomb:1});
+ updateHud();
+}
+function start(){reset();state='playing';overlay.classList.add('hidden');last=performance.now();beep(620,.12);cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
+function showPanel(which){overlay.classList.remove('hidden');menu.classList.toggle('hidden',which!=='menu');pausePanel.classList.toggle('hidden',which!=='pause');overPanel.classList.toggle('hidden',which!=='over')}
+function pause(){if(state!=='playing')return;state='paused';showPanel('pause');}
+function resume(){if(state!=='paused')return;state='playing';overlay.classList.add('hidden');last=performance.now();raf=requestAnimationFrame(loop)}
+function endGame(){state='over';const isBest=score>best;if(isBest){best=score;localStorage.setItem('gf_best',best)} submitRun(score,stage,bossKills,Math.floor(elapsed));$('finalScore').textContent='SCORE '+score.toString().padStart(6,'0');$('bestResult').textContent='BEST '+best;$('resultText').textContent=isBest?'NEW RECORD! The frontier remembers your name.':'The frontier awaits another pilot.';showPanel('over');beep(110,.5,'sawtooth',.04)}
+$('startBtn').onclick=start;$('againBtn').onclick=start;$('resumeBtn').onclick=resume;$('pauseBtn').onclick=pause;
+$('quitBtn').onclick=()=>{state='menu';showPanel('menu');$('best').textContent=best};
+$('homeBtn').onclick=()=>{state='menu';showPanel('menu');$('best').textContent=best};
+$('soundBtn').onclick=()=>{sound=!sound;$('soundBtn').textContent=sound?'♫ ON':'♫ OFF';if(sound)beep(700)};
+function updateHud(){$('score').textContent='SCORE '+score.toString().padStart(6,'0');$('healthFill').style.width=(Math.max(0,player.hp/(player.maxHp||100)*100))+'%';$('lives').textContent='♥ '.repeat(player.lives).trim()||'—';$('stage').textContent='SECTOR '+String(stage).padStart(2,'0')}
+function burst(x,y,color,n=9){for(let i=0;i<n;i++){let a=rand(0,Math.PI*2),s=rand(35,190);particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:rand(.2,.65),max:.65,color,size:rand(1,3)})}}
+function shoot(){const spread=player.weapon>=3?[-.22,0,.22]:player.weapon===2?[-.12,.12]:[0];spread.forEach(a=>bullets.push({x:player.x+Math.sin(a)*9,y:player.y-15,vx:Math.sin(a)*300,vy:-520,r:3,damage:1+Math.floor(((pilot?.weapon_level||1)-1)/3)}));beep(720,.025,'square',.008)}
+function makeEnemy(){
+ const type=Math.random()<.22?'heavy':'scout',hp=type==='heavy'?4:2;
+ enemies.push({x:rand(24,W-24),y:-25,hp,max:hp,type,r:type==='heavy'?15:11,v:rand(65,105)+stage*5,phase:rand(0,7),fire:rand(1.2,3),score:type==='heavy'?180:100});
+}
+function makeBoss(){boss={x:W/2,y:-65,hp:90+stage*25,max:90+stage*25,r:34,dir:1,fire:.8,phase:0};$('bossWrap').style.display='block';toast('WARNING: COMMANDER APPROACHING');beep(140,.5,'sawtooth',.04)}
+function enemyFire(e){enemyBullets.push({x:e.x,y:e.y+10,vx:rand(-35,35),vy:210+stage*12,r:4})}
+function hitPlayer(dmg){if(player.inv>0)return;player.hp-=dmg;player.inv=.65;burst(player.x,player.y,'#ff6385',12);beep(130,.16,'sawtooth',.04);if(player.hp<=0){player.lives--;if(player.lives>0){player.hp=player.maxHp||100;player.inv=2;toast('EMERGENCY REPAIR')}else endGame()}updateHud()}
+function bomb(){if(state!=='playing'||player.bomb<=0)return;player.bomb--;enemyBullets=[];enemies.forEach(e=>{score+=e.score;burst(e.x,e.y,'#8df7ff',12)});enemies=[];if(boss){boss.hp-=35;burst(boss.x,boss.y,'#ffdf7a',28)}burst(player.x,player.y,'#70f5ff',40);toast('NOVA BOMB!');beep(90,.4,'sawtooth',.06);updateHud();$('bombBtn').innerHTML='✦<br>EMPTY'}
+$('bombBtn').addEventListener('pointerdown',e=>{e.preventDefault();bomb()});
+let pointers=new Map(),movePointer=null;
+function pointerDown(e){if(state!=='playing')return;e.preventDefault();canvas.setPointerCapture?.(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});movePointer=e.pointerId;moveTo(e.clientX,e.clientY)}
+function pointerMove(e){if(!pointers.has(e.pointerId)||state!=='playing')return;e.preventDefault();pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});moveTo(e.clientX,e.clientY)}
+function moveTo(cx,cy){const r=canvas.getBoundingClientRect();player.x=clamp((cx-r.left)/r.width*W,18,W-18);player.y=clamp((cy-r.top)/r.height*H,85,H-75)}
+function pointerUp(e){pointers.delete(e.pointerId);if(movePointer===e.pointerId)movePointer=pointers.size?[...pointers.keys()][0]:null}
+canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);
+let fireHeld=false;$('fireBtn').addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;$('fireBtn').setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>$('fireBtn').addEventListener(ev,()=>fireHeld=false));
+$('game').addEventListener('contextmenu',e=>e.preventDefault());
+function update(dt){
+ elapsed+=dt;stage=1+Math.floor(elapsed/35);player.inv=Math.max(0,player.inv-dt);
+ stars.forEach(s=>{s.y+=s.z*75*dt;if(s.y>H){s.y=0;s.x=Math.random()*W}});
+ fireT-=dt;if(fireT<=0){shoot();fireT=(player.weapon>=3?.13:player.weapon===2?.19:.25)/Math.min(1.8,1+(pilot.engine_level-1)*.06)}
+ spawnT-=dt;if(spawnT<=0&&!boss){makeEnemy();spawnT=Math.max(.32,1.05-stage*.055)}
+ bossT+=dt;if(bossT>48&&!boss){makeBoss();bossT=0}
+ bullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt});bullets=bullets.filter(b=>b.y>-20&&b.x>-20&&b.x<W+20);
+ enemies.forEach(e=>{e.y+=e.v*dt;e.x+=Math.sin(elapsed*1.8+e.phase)*45*dt;e.fire-=dt;if(e.fire<=0&&e.y>0){enemyFire(e);e.fire=rand(1.6,2.7)-Math.min(stage*.06,.7)}});
+ enemies=enemies.filter(e=>{if(e.y>H+25){return false}if(Math.hypot(e.x-player.x,e.y-player.y)<e.r+player.r){hitPlayer(18);burst(e.x,e.y,'#ff9b65');return false}return true});
+ enemyBullets.forEach(b=>{b.x+=b.vx*dt;b.y+=b.vy*dt;if(Math.hypot(b.x-player.x,b.y-player.y)<b.r+player.r) {b.dead=true;hitPlayer(12)}});enemyBullets=enemyBullets.filter(b=>!b.dead&&b.y<H+15);
+ for(let i=enemies.length-1;i>=0;i--){let e=enemies[i];for(let j=bullets.length-1;j>=0;j--){let b=bullets[j];if(Math.hypot(e.x-b.x,e.y-b.y)<e.r+b.r){e.hp-=b.damage;bullets.splice(j,1);if(e.hp<=0){score+=e.score;burst(e.x,e.y,e.type==='heavy'?'#ff9b69':'#65efff');if(Math.random()<.12)drops.push({x:e.x,y:e.y,vy:90,type:Math.random()<.6?'weapon':'bomb'});enemies.splice(i,1);beep(240,.06,'triangle');updateHud()}break}}}
+ if(boss){boss.phase+=dt;boss.x+=boss.dir*(65+stage*3)*dt;if(boss.x>W-43)boss.dir=-1;if(boss.x<43)boss.dir=1;boss.y=Math.min(100,boss.y+65*dt);boss.fire-=dt;if(boss.fire<=0){for(let k=-1;k<=1;k++)enemyBullets.push({x:boss.x+k*14,y:boss.y+25,vx:k*75,vy:190+stage*8,r:5});boss.fire=.85}
+ for(let j=bullets.length-1;j>=0;j--){let b=bullets[j];if(Math.hypot(boss.x-b.x,boss.y-b.y)<boss.r+b.r){boss.hp-=1;bullets.splice(j,1);if(boss.hp<=0){score+=1500+stage*100;bossKills++;burst(boss.x,boss.y,'#ffd66b',65);boss=null;$('bossWrap').style.display='none';player.weapon=Math.min(3,player.weapon+1);player.hp=Math.min(player.maxHp||100,player.hp+20);toast('COMMANDER DEFEATED!');beep(880,.3,'triangle',.05);updateHud()}break}}$('bossFill').style.width=(boss?Math.max(0,boss.hp/boss.max*100):0)+'%';if(boss&&Math.hypot(boss.x-player.x,boss.y-player.y)<boss.r+player.r)hitPlayer(25)}
+ drops.forEach(d=>{d.y+=d.vy*dt;if(Math.hypot(d.x-player.x,d.y-player.y)<22){if(d.type==='weapon'){player.weapon=Math.min(3,player.weapon+1);toast('WEAPON UPGRADE')}else{player.bomb=Math.min(3,player.bomb+1);$('bombBtn').innerHTML='✦<br>BOMB ×'+player.bomb;toast('NOVA BOMB +1')}d.got=true;beep(950,.1,'sine')}});drops=drops.filter(d=>!d.got&&d.y<H+20);
+ particles.forEach(p=>{p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=.97;p.vy*=.97;p.life-=dt});particles=particles.filter(p=>p.life>0);
+}
+function pixelShip(x,y,scale=1,color='#68efff'){
+ ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(scale,scale);
+ ctx.fillStyle='#142a54';ctx.fillRect(-5,-7,10,18);ctx.fillStyle=color;
+ ctx.fillRect(-3,-13,6,22);ctx.fillRect(-10,1,20,5);ctx.fillRect(-14,5,7,4);ctx.fillRect(7,5,7,4);
+ ctx.fillStyle='#eaffff';ctx.fillRect(-2,-9,4,7);ctx.fillStyle='#ffb45e';ctx.fillRect(-2,11,4,6);
+ ctx.fillStyle='#2e8eae';ctx.fillRect(-12,2,3,5);ctx.fillRect(9,2,3,5);ctx.restore();
+}
+function draw(){
+ ctx.fillStyle='#070b20';ctx.fillRect(0,0,W,H);
+ // distant nebula patches
+ let g=ctx.createRadialGradient(W*.75,H*.32,2,W*.75,H*.32,W*.55);g.addColorStop(0,'#18234a55');g.addColorStop(1,'#070b2000');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ stars.forEach(s=>{ctx.globalAlpha=s.a;ctx.fillStyle=s.z>2?'#b5f7ff':'#6d91c9';ctx.fillRect(Math.round(s.x),Math.round(s.y),s.z>2?2:1,s.z>2?2:1)});ctx.globalAlpha=1;
+ // horizon grid specks
+ bullets.forEach(b=>{ctx.fillStyle='#a8fbff';ctx.fillRect(b.x-2,b.y-7,4,10);ctx.fillStyle='#39baff';ctx.fillRect(b.x-1,b.y-10,2,4)});
+ enemies.forEach(e=>{ctx.save();ctx.translate(Math.round(e.x),Math.round(e.y));ctx.fillStyle=e.type==='heavy'?'#77345e':'#8d315e';ctx.fillRect(-e.r,-5,e.r*2,11);ctx.fillStyle='#ff648d';ctx.fillRect(-e.r+4,-10,e.r*2-8,7);ctx.fillStyle='#ffd0d8';ctx.fillRect(-3,-7,6,3);ctx.fillStyle='#331c45';ctx.fillRect(-e.r-4,1,7,5);ctx.fillRect(e.r-3,1,7,5);ctx.restore()});
+ if(boss){ctx.save();ctx.translate(Math.round(boss.x),Math.round(boss.y));ctx.fillStyle='#54244f';ctx.fillRect(-34,-16,68,32);ctx.fillStyle='#a83d75';ctx.fillRect(-24,-25,48,14);ctx.fillRect(-46,-7,17,18);ctx.fillRect(29,-7,17,18);ctx.fillStyle='#ff668e';ctx.fillRect(-9,-11,18,9);ctx.fillStyle='#ffd66b';ctx.fillRect(-3,-8,6,4);ctx.restore()}
+ enemyBullets.forEach(b=>{ctx.fillStyle='#ff668f';ctx.fillRect(b.x-3,b.y-3,6,6);ctx.fillStyle='#ffc0d2';ctx.fillRect(b.x-1,b.y-1,2,2)});
+ drops.forEach(d=>{ctx.fillStyle=d.type==='weapon'?'#65efff':'#ffd66b';ctx.fillRect(d.x-7,d.y-7,14,14);ctx.fillStyle='#102345';ctx.font='bold 10px monospace';ctx.fillText(d.type==='weapon'?'W':'B',d.x-3,d.y+3)});
+ particles.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life/p.max);ctx.fillStyle=p.color;ctx.fillRect(p.x,p.y,p.size,p.size)});ctx.globalAlpha=1;
+ if(state!=='over'&&player.lives>0){if(player.inv<=0||Math.floor(elapsed*12)%2===0){pixelShip(player.x,player.y,1,pilot.equipped_ship==='guardian'?'#ffb86b':pilot.equipped_ship==='interceptor'?'#c58cff':player.weapon===3?'#ffe17b':'#65efff')}}
+ // subtle scanline texture
+ ctx.fillStyle='#ffffff08';for(let y=0;y<H;y+=4)ctx.fillRect(0,y,W,1);
+}
+function loop(now){if(state!=='playing')return;let dt=Math.min(.033,(now-last)/1000||0);last=now;update(dt);draw();raf=requestAnimationFrame(loop)}
+function idle(){draw();if(state==='menu'||state==='over'||state==='paused')raf=requestAnimationFrame(idle)}
+// Fullscreen is optional; browsers may require a user gesture and may not support file-origin fullscreen.
+$('topBtns').addEventListener('dblclick',()=>{if(document.fullscreenElement)document.exitFullscreen?.();else $('game').requestFullscreen?.().catch(()=>{})});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='playing')pause()});
+$('game').addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
+$('bombBtn').innerHTML='✦<br>BOMB ×1';
+
+ $('bombBtn').innerHTML='✦<br>BOMB ×1';
+
+ // ---------- ONLINE SERVICES / PERSISTENT PILOT DATA ----------
+ // Set these two values from your Supabase project. Use the public anon key only.
+ const SUPABASE_URL='https://qlwiznxipxypnszkpiui.supabase.co';
+ const SUPABASE_ANON_KEY='sb_publishable__X0axKyQVDn-l_yofyCeEQ_GsXn10VG';
+ const ONLINE_READY=!!(window.supabase && SUPABASE_URL.startsWith('https://') && SUPABASE_ANON_KEY.length>30 && !SUPABASE_URL.includes('YOUR_'));
+ const sb=ONLINE_READY?window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY):null;
+ const localKey='gf_pilot_v1';
+ let pilot={name:'Rookie Pilot',credits:0,crystals:0,weapon_level:1,hull_level:1,engine_level:1,shield_level:1,equipped_ship:'scout',unlocked_ships:['scout'],friend_code:'OFFLINE',user_id:null};
+ let rankMode='global';
+ try{pilot={...pilot,...JSON.parse(localStorage.getItem(localKey)||'{}')}}catch(e){}
+ const products=[
+  {id:'weapon',name:'WEAPON SYSTEM',desc:'Increase permanent weapon power',base:150,max:10,field:'weapon_level'},
+  {id:'hull',name:'HULL REINFORCEMENT',desc:'Increase maximum hull integrity',base:120,max:10,field:'hull_level'},
+  {id:'engine',name:'ENGINE BOOST',desc:'Improve ship movement response',base:130,max:10,field:'engine_level'},
+  {id:'shield',name:'ENERGY SHIELD',desc:'Reduce incoming damage',base:160,max:10,field:'shield_level'}
+ ];
+ function saveLocal(){localStorage.setItem(localKey,JSON.stringify(pilot))}
+ function msg(t){const el=$('profileMessage');if(el)el.textContent=t}
+ function setAccountStatus(){ $('accountStatus').textContent=sb?(pilot.user_id?'ONLINE · '+pilot.name+' · '+pilot.credits+' CR':'SUPABASE READY · SIGN IN TO SYNC'):'OFFLINE DEMO · Add Supabase URL + anon key to enable online features'; }
+ function showHub(id){[menu,pausePanel,overPanel].forEach(x=>x.classList.add('hidden'));document.querySelectorAll('.hubPanel').forEach(x=>x.classList.add('hidden'));overlay.classList.remove('hidden');$(id).classList.remove('hidden');}
+ function backMenu(){document.querySelectorAll('.hubPanel').forEach(x=>x.classList.add('hidden'));showPanel('menu');}
+ document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click',backMenu));
+ $('shopOpen').onclick=()=>{showHub('shopPanel');renderShop()};
+ $('upgradeOpen').onclick=()=>{showHub('upgradePanel');renderUpgrades()};
+ $('rankOpen').onclick=()=>{showHub('rankPanel');loadRanks('global')};
+ $('profileOpen').onclick=()=>{showHub('profilePanel');renderProfile()};
+ function priceFor(p){return p.base*Math.pow(1.65,Math.max(0,(pilot[p.field]||1)-1))|0}
+ function renderShop(){ $('shopBalance').textContent='CREDITS '+(pilot.credits||0)+'  ·  CRYSTAL '+(pilot.crystals||0);$('shopItems').innerHTML='';let sh=document.createElement('div');sh.innerHTML='<div class="hubSub" style="margin-top:12px">SHIP HANGAR STOCK</div>';$('shopItems').appendChild(sh);[{id:'scout',name:'SCOUT',cost:0,desc:'Balanced starter fighter'},{id:'interceptor',name:'INTERCEPTOR',cost:800,desc:'Fast attack craft'},{id:'guardian',name:'GUARDIAN',cost:1200,desc:'Heavy defense craft'}].forEach(v=>{let owned=(pilot.unlocked_ships||['scout']).includes(v.id),equipped=pilot.equipped_ship===v.id,row=document.createElement('div');row.className='hubRow';row.innerHTML='<div><b>'+v.name+'</b><small>'+v.desc+'</small></div><button class="hubAction">'+(equipped?'EQUIPPED':owned?'EQUIP':v.cost+' CR')+'</button>';let b=row.querySelector('button');b.disabled=equipped;b.onclick=()=>owned?equipShip(v.id):buyShip(v.id);$('shopItems').appendChild(row)});let h=document.createElement('div');h.innerHTML='<div class="hubSub" style="margin-top:16px">SYSTEM UPGRADES</div>'; $('shopItems').appendChild(h);products.forEach(p=>{let lv=pilot[p.field]||1,cost=priceFor(p),row=document.createElement('div');row.className='hubRow';row.innerHTML='<div><b>'+p.name+'</b><small>'+p.desc+' · LEVEL '+lv+'/'+p.max+'</small></div><button class="hubAction" '+(lv>=p.max?'disabled':'')+'>'+ (lv>=p.max?'MAX':cost+' CR')+'</button>';row.querySelector('button').onclick=()=>buyUpgrade(p.id);$('shopItems').appendChild(row)})}
+ function renderUpgrades(){ $('upgradeSummary').innerHTML='<div class="hubRow"><span>ACTIVE SHIP</span><b style="color:#65efff">'+String(pilot.equipped_ship||'scout').toUpperCase()+'</b></div>';products.forEach(p=>{let row=document.createElement('div');row.className='hubRow';row.innerHTML='<div><b>'+p.name+'</b><small>PERMANENT LEVEL</small></div><strong style="color:#65efff">LV '+(pilot[p.field]||1)+'</strong>';$('upgradeSummary').appendChild(row)});let note=document.createElement('p');note.className='hubNotice';note.textContent='Upgrades are saved to your pilot profile. Weapon level changes your in-game firing pattern; hull and shield upgrades improve survivability.';$('upgradeSummary').appendChild(note)}
+ async function refreshPilot(){if(!sb||!pilot.user_id)return;const {data,error}=await sb.from('player_data').select('*').eq('user_id',pilot.user_id).maybeSingle();if(!error&&data){pilot={...pilot,...data};saveLocal()}setAccountStatus()}
+ async function buyUpgrade(id){const p=products.find(x=>x.id===id);if(!p)return;if(!sb||!pilot.user_id){let lv=pilot[p.field]||1,cost=priceFor(p);if(lv>=p.max)return;if(pilot.credits<cost){toast('NOT ENOUGH CREDITS');return}pilot.credits-=cost;pilot[p.field]=lv+1;saveLocal();renderShop();renderUpgrades();toast('UPGRADE PURCHASED');return}
+  const {data,error}=await sb.rpc('purchase_upgrade',{p_item_id:id});if(error){toast(error.message.slice(0,45));return}await refreshPilot();renderShop();renderUpgrades();toast('UPGRADE PURCHASED')}
+ async function buyShip(id){if(!sb||!pilot.user_id){let cost={interceptor:800,guardian:1200}[id];if(!cost||pilot.credits<cost){toast('NOT ENOUGH CREDITS');return}pilot.credits-=cost;pilot.unlocked_ships=[...new Set([...(pilot.unlocked_ships||['scout']),id])];pilot.equipped_ship=id;saveLocal();renderShop();renderUpgrades();toast('SHIP UNLOCKED');return}const {error}=await sb.rpc('purchase_ship',{p_ship_id:id});if(error){toast(error.message.slice(0,45));return}await equipShip(id);await refreshPilot();renderShop();renderUpgrades();toast('SHIP UNLOCKED')}
+ async function equipShip(id){if(!sb||!pilot.user_id){if(!(pilot.unlocked_ships||['scout']).includes(id))return;pilot.equipped_ship=id;saveLocal();renderShop();renderUpgrades();return}const {error}=await sb.rpc('equip_ship',{p_ship_id:id});if(error){toast(error.message.slice(0,45));return}pilot.equipped_ship=id;saveLocal();await refreshPilot();renderShop();renderUpgrades();toast('SHIP EQUIPPED')}
+ function renderProfile(){ $('profileSummary').innerHTML='<div class="hubRow"><span>PILOT</span><b>'+escapeHtml(pilot.name)+'</b></div><div class="hubRow"><span>CREDITS</span><b>'+pilot.credits+'</b></div><div class="hubRow"><span>CRYSTALS</span><b>'+pilot.crystals+'</b></div><div class="hubRow"><span>FRIEND CODE</span><b>'+escapeHtml(pilot.friend_code||'—')+'</b></div><div class="hubRow"><span>ACCOUNT</span><b>'+(pilot.user_id?'ONLINE':'GUEST')+'</b></div>'; $('pilotName').value=pilot.name||'';$('signOut').style.display=pilot.user_id?'inline-block':'none';}
+ function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+ $('savePilot').onclick=async()=>{let n=$('pilotName').value.trim();if(n.length<2||n.length>20){msg('Pilot name must be 2–20 characters.');return}pilot.name=n;saveLocal();if(sb&&pilot.user_id){const {error}=await sb.from('profiles').update({pilot_name:n}).eq('id',pilot.user_id);if(error){msg(error.message);return}}renderProfile();setAccountStatus();msg('Pilot name saved.')};
+ $('signIn').onclick=async()=>{if(!sb){msg('Add your Supabase URL and anon key in the HTML first.');return}let email=$('pilotEmail').value.trim(),password=$('pilotPassword').value;if(!email){msg('Enter your email.');return}let result=password?await sb.auth.signInWithPassword({email,password}):await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href}});if(result.error){msg(result.error.message);return}msg(password?'Signed in successfully.':'Magic link sent. Open the link from this device to sign in.');};
+ $('signUp').onclick=async()=>{if(!sb){msg('Add your Supabase URL and anon key in the HTML first.');return}let email=$('pilotEmail').value.trim(),password=$('pilotPassword').value;if(!email||password.length<8){msg('Enter an email and a password of at least 8 characters.');return}const {error}=await sb.auth.signUp({email,password,options:{emailRedirectTo:location.href}});msg(error?error.message:'Account created. Check your email to confirm the account.');};
+ $('signOut').onclick=async()=>{if(sb)await sb.auth.signOut();pilot.user_id=null;saveLocal();renderProfile();setAccountStatus();msg('Signed out.')};
+ $('addFriend').onclick=async()=>{if(!sb||!pilot.user_id){msg('Sign in to add friends.');return}let code=$('friendCode').value.trim().toUpperCase();if(!code){msg('Enter a friend code.');return}const {data,error}=await sb.rpc('add_friend_by_code',{p_friend_code:code});msg(error?error.message:(data||'Friend added.'));};
+ async function loadRanks(mode){rankMode=mode;$('rankRows').textContent='Loading leaderboard…';document.querySelectorAll('[data-rank]').forEach(b=>b.classList.toggle('active',b.dataset.rank===mode));if(!sb){$('rankRows').textContent='Connect Supabase and sign in to view online rankings.';return}let ids=null;if(mode==='friends'){if(!pilot.user_id){$('rankRows').textContent='Sign in to view your friends leaderboard.';return}const {data:fs,error:fe}=await sb.from('friendships').select('friend_id').eq('user_id',pilot.user_id);if(fe){$('rankRows').textContent=fe.message;return}ids=(fs||[]).map(x=>x.friend_id).concat([pilot.user_id]);if(!ids.length){$('rankRows').textContent='No friends yet. Add a friend using their code in Pilot Profile.';return}}
+  let q=sb.from('leaderboard_best').select('user_id,pilot_name,best_score,best_sector,bosses_defeated').order('best_score',{ascending:false}).limit(50);if(ids)q=q.in('user_id',ids);const {data,error}=await q;if(error){$('rankRows').textContent=error.message;return}if(!data?.length){$('rankRows').textContent='No scores yet. Be the first pilot!';return} $('rankRows').innerHTML='';data.forEach((r,i)=>{let row=document.createElement('div');row.className='hubRow';row.innerHTML='<div><b>#'+(i+1)+' '+escapeHtml(r.pilot_name||'Unknown Pilot')+'</b><small>SECTOR '+r.best_sector+' · BOSSES '+r.bosses_defeated+'</small></div><strong style="color:#ffd66b">'+Number(r.best_score).toLocaleString()+'</strong>';$('rankRows').appendChild(row)})}
+ document.querySelectorAll('[data-rank]').forEach(b=>b.onclick=()=>loadRanks(b.dataset.rank));$('refreshRanks').onclick=()=>loadRanks(rankMode);
+ async function submitRun(finalScore,finalSector,bossCount,duration){if(!sb||!pilot.user_id){let reward=Math.max(0,Math.min(1000,Math.floor(finalScore/100)));pilot.credits=(pilot.credits||0)+reward;saveLocal();return}const {data,error}=await sb.rpc('submit_run',{p_score:finalScore,p_sector:finalSector,p_bosses:bossCount,p_duration_seconds:duration});if(error){console.warn('Score sync failed:',error.message);return}await refreshPilot();}
+ async function onAuthChange(session){pilot.user_id=session?.user?.id||null;if(pilot.user_id){const {data,error}=await sb.from('profiles').select('*').eq('id',pilot.user_id).maybeSingle();if(!error&&data){pilot.name=data.pilot_name||pilot.name;pilot.friend_code=data.friend_code||pilot.friend_code}await refreshPilot()}saveLocal();setAccountStatus();if(!$('profilePanel').classList.contains('hidden'))renderProfile()}
+ if(sb){sb.auth.onAuthStateChange((_event,session)=>{setTimeout(()=>onAuthChange(session),0)});sb.auth.getSession().then(({data})=>onAuthChange(data.session));}else setAccountStatus();
+ // Persistent stats affect the existing shooter without changing its controls.
+ const originalReset=reset;
+ reset=function(){originalReset();player.maxHp=100+(pilot.hull_level-1)*10;player.hp=player.maxHp;player.weapon=Math.min(3,Math.max(1,pilot.weapon_level));player.inv=1.5;updateHud()};
+ const originalHitPlayer=hitPlayer;
+ hitPlayer=function(dmg){let reduction=Math.min(.45,(pilot.shield_level-1)*.04);originalHitPlayer(Math.max(1,Math.round(dmg*(1-reduction))))};
+
+ draw();idle();
+})();
+</script>
+</body>
+</html>
