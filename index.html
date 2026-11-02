@@ -121,7 +121,7 @@ canvas{display:block;width:100%;height:100%;image-rendering:pixelated;touch-acti
    <p id="resultText">The frontier awaits another pilot.</p>
    <div class="stats"><span id="finalScore">SCORE 0</span><span id="bestResult">BEST 0</span></div>
    <button class="primary" id="againBtn">TRY AGAIN</button><button class="primary secondary" id="homeBtn">MAIN MENU</button></div>
-  <div class="hubPanel hidden" id="garagePanel"><div class="hubTitle">SHIP GARAGE</div><div class="hubSub">ENGINES · WINGS · EXTRAS · PAINT</div><div style="text-align:center"><canvas id="garShip" width="150" height="130"></canvas></div><div class="hubTabs" id="garTabs"></div><div id="garRows"></div><button class="hubBack" data-back>← BACK TO MENU</button></div>
+  <div class="hubPanel hidden" id="garagePanel"><div class="hubTitle">SHIP GARAGE</div><div class="hubSub">ENGINES · WINGS · WEAPONS · EXTRAS · PAINT</div><div style="text-align:center"><canvas id="garShip" width="150" height="130"></canvas></div><div class="hubTabs" id="garTabs"></div><div id="garRows"></div><button class="hubBack" data-back>← BACK TO MENU</button></div>
   <div class="panel hidden" id="tutPanel"><div class="logo" style="font-size:24px">HOW TO<br><span>PLAY</span></div><div id="tutBody" style="font-size:13px;line-height:1.7;color:#cfe4ff;min-height:120px;margin:14px 0"></div><div id="tutDots" class="sub"></div><button class="primary" id="tutNext">NEXT ▶</button><button class="primary secondary" id="tutSkip">SKIP</button></div>
   <div class="panel hidden" id="pickPanel"><div class="logo" style="font-size:26px">POWER<br><span>UP</span></div><div class="sub">CHOOSE AN UPGRADE</div><div id="pickRows"></div></div>
   <div class="hubPanel hidden" id="shopPanel"><div class="hubTitle">SPACE SHOP</div><div class="hubSub">PURCHASE PERMANENT UPGRADES</div><div id="shopBalance" class="stats">CREDITS 0</div><div id="shopItems"></div><button class="hubBack" data-back>← BACK TO MENU</button></div>
@@ -218,7 +218,7 @@ function pointerUp(e){pointers.delete(e.pointerId);if(movePointer===e.pointerId)
 canvas.addEventListener('pointerdown',pointerDown);canvas.addEventListener('pointermove',pointerMove);canvas.addEventListener('pointerup',pointerUp);canvas.addEventListener('pointercancel',pointerUp);
 let fireHeld=false;$('fireBtn').addEventListener('pointerdown',e=>{e.preventDefault();fireHeld=true;$('fireBtn').setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>$('fireBtn').addEventListener(ev,()=>fireHeld=false));
 $('game').addEventListener('contextmenu',e=>e.preventDefault());
-function update(dt){if(GM()==='time'){timeLeft-=dt;if(timeLeft<=0){winRun();return}}if(pickQ){openPick();return}
+function update(dt){mountTick(dt);if(GM()==='time'){timeLeft-=dt;if(timeLeft<=0){winRun();return}}if(pickQ){openPick();return}
  player.tmpT=Math.max(0,(player.tmpT||0)-dt);if(update.ls!==stage){if(update.ls&&stage>1)toast('SECTOR '+stage+' · '+THN[th()]);update.ls=stage}
  player.skillCd=Math.max(0,(player.skillCd||0)-dt);comboT-=dt;if(comboT<=0&&combo){combo=0;updateHud()}shake=Math.max(0,shake-dt*1.5);flash=Math.max(0,flash-dt*2);{const t=SH().sk+(player.skillCd>0?'<br>'+Math.ceil(player.skillCd):'<br>READY'),sbn=$('skillBtn');if(sbn.dataset.t!==t){sbn.dataset.t=t;sbn.innerHTML=t}}
  const kx=((keys.arrowright||keys.d?1:0)-(keys.arrowleft||keys.a?1:0))*(MUT.flip?-1:1),ky=(keys.arrowdown||keys.s?1:0)-(keys.arrowup||keys.w?1:0);if(kx||ky){const sp=(300+(pilot.engine_level-1)*18)*SH().spd;player.x=clamp(player.x+kx*sp*dt,18,W-18);player.y=clamp(player.y+ky*sp*dt,85,H-75)}
@@ -244,11 +244,11 @@ function update(dt){if(GM()==='time'){timeLeft-=dt;if(timeLeft<=0){winRun();retu
  zones.forEach(z=>{z.t-=dt;if(z.t<=0){if(!z.fired){z.fired=1;z.cb&&z.cb()}z.life-=dt;if(!z.hit&&player.x>z.x&&player.x<z.x+z.w&&player.y>z.y&&player.y<z.y+z.h){z.hit=1;hitPlayer(20)}}});zones=zones.filter(z=>z.life>0);
 }
 function pixelShip(x,y,scale=1,color='#68efff',shipId,cx,sk){const ctx=cx||MAINCTX;
- const tier=weaponTier(),ship=shipId||pilot?.equipped_ship||'scout';const SK=sk||curSkin(),CUS=sk?{}:CU(),hue=performance.now()/5;if(SK.rb)color='hsl('+(hue%360|0)+',100%,65%)';else if(SK.a)color=SK.a;else if(CUS.c2)color=CUS.c2;const SKB=SK.rb?'hsl('+((hue+120)%360|0)+',80%,40%)':(SK.b||CUS.c1);ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(scale,scale);
- const flame=SK.rb?color:SK.f||engCol(CUS)||(tier>=5?'#ff9d5c':'#65efff');ctx.shadowBlur=9;ctx.shadowColor=color;
+ const tier=weaponTier(),ship=shipId||pilot?.equipped_ship||'scout';const SK=sk||curSkin(),CUS=sk?{}:CU(),hue=performance.now()/5;if(CUS.c2)color=CUS.c2;else if(SK.rb)color='hsl('+(hue%360|0)+',100%,65%)';else if(SK.a)color=SK.a;const SKB=CUS.c1||(SK.rb?'hsl('+((hue+120)%360|0)+',80%,40%)':SK.b);ctx.save();ctx.translate(Math.round(x),Math.round(y));ctx.scale(scale,scale);
+ const flame=engCol(CUS)||(SK.rb?color:SK.f)||(tier>=5?'#ff9d5c':'#65efff');ctx.shadowBlur=9;ctx.shadowColor=color;
  // engine plumes and engine nacelles
- ctx.fillStyle=flame;const zz=engSz(CUS);ctx.fillRect(-9,11,5,(10+Math.sin(elapsed*18)*2)*zz);ctx.fillRect(4,11,5,(10+Math.sin(elapsed*18+1)*2)*zz);
- if(SK.shape){shapeShip(ctx,SK.shape,color);skinFx(ctx,FXS(SK,CUS),color,!cx&&scale===1);ctx.restore();return}ctx.shadowBlur=0;ctx.fillStyle='#14264d';ctx.fillRect(-15,0,30,11);ctx.fillStyle=SKB||(ship==='guardian'?'#ffb86b':ship==='interceptor'?'#bd91ff':ship==='phantom'?'#72f4db':SBC[ship]||'#4c9fca');
+ engDraw(ctx,CUS.engine,flame);
+ if(SK.shape){shapeShip(ctx,SK.shape,color);wingsDraw(ctx,CUS.wings,color);mountDraw(ctx,CUS.mount,color);skinFx(ctx,FXS(SK,CUS),color,!cx&&scale===1);ctx.restore();return}ctx.shadowBlur=0;ctx.fillStyle='#14264d';ctx.fillRect(-15,0,30,11);ctx.fillStyle=SKB||(ship==='guardian'?'#ffb86b':ship==='interceptor'?'#bd91ff':ship==='phantom'?'#72f4db':SBC[ship]||'#4c9fca');
  if(ship==='guardian'){ctx.fillRect(-19,-1,9,15);ctx.fillRect(10,-1,9,15);ctx.fillRect(-10,-13,20,27);ctx.fillRect(-5,-20,10,9)}
  else if(ship==='interceptor'){ctx.fillRect(-20,1,40,5);ctx.fillRect(-15,-7,8,17);ctx.fillRect(7,-7,8,17);ctx.fillRect(-5,-19,10,31)}
  else if(ship==='phantom'){ctx.fillRect(-18,-3,36,8);ctx.fillRect(-12,-12,24,21);ctx.fillRect(-4,-22,8,13)}
@@ -263,7 +263,7 @@ function pixelShip(x,y,scale=1,color='#68efff',shipId,cx,sk){const ctx=cx||MAINC
  else {ctx.fillRect(-17,0,34,6);ctx.fillRect(-11,-7,7,15);ctx.fillRect(4,-7,7,15);ctx.fillRect(-6,-20,12,25)}
  ctx.fillStyle=color;ctx.fillRect(-4,-15,8,24);ctx.fillRect(-13,2,26,4);ctx.fillStyle='#eaffff';ctx.fillRect(-3,-12,6,8);ctx.fillStyle='#18385e';ctx.fillRect(-2,-3,4,8);
  // tier-specific side cannons
- if(tier>=2){ctx.fillStyle=WEAPON_TIERS[tier-1].color;ctx.fillRect(-15,-3,4,7);ctx.fillRect(11,-3,4,7)}if(tier>=5){ctx.fillRect(-21,3,5,6);ctx.fillRect(16,3,5,6)}wingsDraw(ctx,CUS.wings,color);skinFx(ctx,FXS(SK,CUS),color,!cx&&scale===1);
+ if(tier>=2){ctx.fillStyle=WEAPON_TIERS[tier-1].color;ctx.fillRect(-15,-3,4,7);ctx.fillRect(11,-3,4,7)}if(tier>=5){ctx.fillRect(-21,3,5,6);ctx.fillRect(16,3,5,6)}wingsDraw(ctx,CUS.wings,color);mountDraw(ctx,CUS.mount,color);skinFx(ctx,FXS(SK,CUS),color,!cx&&scale===1);
  ctx.restore();
 }
 function drawEnemy(e){const c=ctx,r=e.r,t=e.type,P=({scout:['#2a1233','#ff3d6e'],heavy:['#3a1226','#ff7a3d'],kami:['#3a1008','#ffb02e'],sniper:['#141a3d','#6d7dff'],split:['#0f2b25','#3dffb0'],shield:['#10283a','#52d6ff'],mother:['#2e1a08','#ffcf4d'],spiral:['#2a0f3d','#d34dff'],bomber:['#2b2b12','#e8ff3d']})[t]||['#2a1233','#ff3d6e'],R=(x,y,w,h,k)=>{c.fillStyle=k;c.fillRect(x,y,w,h)},tm=performance.now()/1000;
@@ -292,6 +292,8 @@ function shapeShip(c,n,col){const R=(x,y,w,h,k)=>{c.fillStyle=k;c.fillRect(x,y,w
  else if(n==='skull'){R(-16,5,32,3,'#ddd');R(-9,-20,18,16,'#f1f1f1');R(-6,-4,12,8,'#f1f1f1');R(-7,-14,5,5,'#111');R(2,-14,5,5,'#111');R(-5,-12,2,2,col);R(3,-12,2,2,col);R(-1,-8,2,3,'#555');R(-3,0,1,4,'#555');R(0,0,1,4,'#555');R(3,0,1,4,'#555')}
  c.shadowBlur=0}
 function skinFx(c,S,col,main){const f=S.fx||'',t=performance.now()/1000;
+ if(f.includes('sat')){c.fillStyle=col;c.shadowBlur=8;c.shadowColor=col;for(let i=0;i<3;i++){const a=t*3+i*2.094;c.fillRect(Math.cos(a)*30-2,Math.sin(a)*13-2,4,4)}c.shadowBlur=0}
+ if(f.includes('hex')){c.strokeStyle=col;c.globalAlpha=.45;c.lineWidth=1.5;c.beginPath();for(let i=0;i<6;i++){const a=i*1.047+t;c.lineTo(Math.cos(a)*27,Math.sin(a)*27)}c.closePath();c.stroke();c.globalAlpha=1}
  if(f.includes('halo')){c.strokeStyle=col;c.globalAlpha=.55;c.lineWidth=1.5;c.beginPath();c.ellipse(0,0,25+Math.sin(t*5)*2,11,t*2,0,7);c.stroke();c.globalAlpha=1}
  if(f.includes('wings')){c.fillStyle=col;c.shadowBlur=10;c.shadowColor=col;c.fillRect(-24,-4,3,16);c.fillRect(21,-4,3,16);c.fillRect(-27,6,3,9);c.fillRect(24,6,3,9);c.shadowBlur=0}
  if(f.includes('trail')&&main&&Math.random()<.7)particles.push({x:player.x,y:player.y+8,vx:0,vy:20,life:.3,max:.3,color:col,size:6});if(f.includes('spark')&&main&&Math.random()<.5)particles.push({x:player.x+rand(-8,8),y:player.y+16,vx:rand(-25,25),vy:rand(40,90),life:.4,max:.4,color:S.f||col,size:rand(2,3.5)})}
@@ -490,19 +492,19 @@ const DROPW=[['weapon',18],['bomb',12],['shield',14],['rapid',14],['swap',10],['
  const WNGS=[{id:'stock',n:'STOCK WINGS',d:'Standard',cost:0},{id:'blades',n:'RAZOR BLADES',d:'+6% max hull',cost:800,p:{hull:1}},{id:'feather',n:'FEATHER WINGS',d:'+8% drop rate',cost:900,p:{luck:1}},{id:'bat',n:'BAT WINGS',d:'+3% crit chance',cost:1200,p:{crit:1}},{id:'cannons',n:'WING CANNONS',d:'+5% damage',cost:1500,p:{dmg:1}},{id:'mech',n:'MECH PLATING',d:'+12% max hull',cost:2200,p:{hull:2}},{id:'angel',n:'ANGEL WINGS',d:'-8% skill cooldown',cost:2500,p:{cd:2}}];
  const EXTS=[{id:'none',n:'NONE',d:'No effect',cost:0},{id:'spark',n:'SPARK TRAIL',d:'Glitter behind the ship',cost:500,fx:'spark'},{id:'trail',n:'AFTERIMAGE',d:'Ghost trail',cost:700,fx:'trail'},{id:'halo',n:'ORBIT HALO',d:'Glowing ring',cost:800,fx:'halo'},{id:'glow',n:'NEON WINGTIPS',d:'Glowing wing blades',cost:800,fx:'wings'},{id:'all',n:'ROYAL AURA',d:'All effects combined',cost:2500,fx:'spark trail halo wings'}];
  let PREV=null,gTab='engine';function CU(){return PREV||meta.cust||{}}
- function PL(k){const c=meta.cust||{};let n=0;for(const[g,id]of[[ENGS,c.engine],[WNGS,c.wings]]){const p=g.find(x=>x.id===id);if(p&&p.p&&p.p[k])n+=p.p[k]}return n}
+ function PL(k){const c=meta.cust||{};let n=0;for(const[g,id]of[[ENGS,c.engine],[WNGS,c.wings],[MOUNTS,c.mount]]){const p=g.find(x=>x.id===id);if(p&&p.p&&p.p[k])n+=p.p[k]}return n}
  function engCol(c){const e=ENGS.find(x=>x.id===c.engine);if(!e||!e.c)return null;return e.c==='rb'?'hsl('+(performance.now()/5%360|0)+',100%,60%)':e.c}
  function engSz(c){const e=ENGS.find(x=>x.id===c.engine);return e&&e.z||1}
  function FXS(S,C){const e=EXTS.find(x=>x.id===C.extra);return e&&e.fx?{...S,fx:(S.fx||'')+' '+e.fx}:S}
- function wingsDraw(c,id,col){if(!id||id==='stock')return;const m=(x,y,w,h)=>{c.fillRect(x,y,w,h);c.fillRect(-x-w,y,w,h)};c.save();c.fillStyle=col;c.shadowBlur=5;c.shadowColor=col;
+ function wingsDrawOld(c,id,col){if(!id||id==='stock')return;const m=(x,y,w,h)=>{c.fillRect(x,y,w,h);c.fillRect(-x-w,y,w,h)};c.save();c.fillStyle=col;c.shadowBlur=5;c.shadowColor=col;
   if(id==='blades'){m(-30,-4,10,3);m(-26,0,8,3);m(-22,4,6,3)}else if(id==='feather'){m(-28,-6,3,18);m(-31,-2,3,14);m(-34,2,3,10)}else if(id==='bat'){m(-20,-4,6,4);m(-26,-2,6,4);m(-32,0,6,4);m(-34,4,4,6)}else if(id==='cannons'){m(-27,0,5,14);c.fillStyle='#fff';m(-27,-4,5,3)}else if(id==='mech'){c.fillStyle='#9aa7b8';m(-30,2,10,6);m(-30,8,4,8);c.fillStyle=col;m(-30,0,10,2)}else if(id==='angel'){c.fillStyle='#f4fbff';m(-24,-14,4,24);m(-28,-18,4,22);m(-32,-20,4,18)}c.restore()}
  const GSL={engine:{arr:ENGS,pre:'e:',key:'engine',def:'stock'},wings:{arr:WNGS,pre:'w:',key:'wings',def:'stock'},extra:{arr:EXTS,pre:'x:',key:'extra',def:'none'}};
- function renderGarage(){const id=pilot.equipped_ship||'scout',gx=$('garShip').getContext('2d');gx.clearRect(0,0,150,130);const gr=gx.createRadialGradient(75,70,4,75,70,62);gr.addColorStop(0,(SHIPCOL[id]||'#65efff')+'55');gr.addColorStop(1,'#0000');gx.fillStyle=gr;gx.fillRect(0,0,150,130);pixelShip(75,72,2.4,SHIPCOL[id]||'#65efff',id,gx);
+ function renderGarageOld(){const id=pilot.equipped_ship||'scout',gx=$('garShip').getContext('2d');gx.clearRect(0,0,150,130);const gr=gx.createRadialGradient(75,70,4,75,70,62);gr.addColorStop(0,(SHIPCOL[id]||'#65efff')+'55');gr.addColorStop(1,'#0000');gx.fillStyle=gr;gx.fillRect(0,0,150,130);pixelShip(75,72,2.4,SHIPCOL[id]||'#65efff',id,gx);
   const tabs=$('garTabs');tabs.innerHTML='';[['engine','ENGINE'],['wings','WINGS'],['extra','EXTRAS'],['paint','PAINT']].forEach(([k,n])=>{const b=document.createElement('button');b.className='hubTab'+(gTab===k?' active':'');b.textContent=n;b.onclick=()=>{gTab=k;renderGarage()};tabs.appendChild(b)});
   const host=$('garRows');host.innerHTML='<div class="hubNotice">CREDITS '+(pilot.credits||0)+(curSkin().id!=='default'?' · An equipped skin overrides paint colors':'')+'</div>';
   if(gTab==='paint'){[['c1','BODY COLOR'],['c2','ACCENT COLOR']].forEach(([k,n])=>{const row=document.createElement('div');row.innerHTML='<div class="hubSub" style="margin-top:12px">'+n+'</div>';const sw=document.createElement('div');sw.style.cssText='display:flex;flex-wrap:wrap;gap:8px';['',...PAL].forEach(c=>{const b=document.createElement('button');b.style.cssText='width:34px;height:34px;border-radius:8px;border:2px solid '+(((meta.cust||{})[k]||'')===c?'#fff':'#345878')+';background:'+(c||'#101f3a')+';color:#9bb5d5;font:900 9px monospace';b.textContent=c?'':'AUTO';b.onclick=()=>{meta.cust={...(meta.cust||{}),[k]:c||undefined};saveMeta();renderGarage()};sw.appendChild(b)});row.appendChild(sw);host.appendChild(row)});return}
   const g=GSL[gTab];g.arr.forEach(p=>{const key=g.pre+p.id,own=!p.cost||(meta.parts||[]).includes(key),on=((meta.cust||{})[g.key]||g.def)===p.id,row=document.createElement('div');row.className='hubRow';row.innerHTML='<canvas class="pv" width="48" height="48"></canvas><div style="flex:1"><b>'+p.n+'</b><small>'+p.d+'</small></div><button class="hubAction">'+(on?'EQUIPPED':own?'EQUIP':p.cost+' CR')+'</button>';const x=row.querySelector('.pv').getContext('2d');x.fillStyle='#071126';x.fillRect(0,0,48,48);PREV={...(meta.cust||{}),[g.key]:p.id};pixelShip(24,30,.8,SHIPCOL[id]||'#65efff',id,x);PREV=null;const b=row.querySelector('button');b.disabled=on;b.onclick=()=>{if(!own){if((pilot.credits||0)<p.cost){toast('NOT ENOUGH CREDITS');return}pilot.credits-=p.cost;meta.parts=[...(meta.parts||[]),key];saveLocal();toast('PART INSTALLED')}meta.cust={...(meta.cust||{}),[g.key]:p.id};saveMeta();renderGarage()};host.appendChild(row)})}
- $('garageOpen').onclick=()=>{showHub('garagePanel');renderGarage()};
+ $('garageOpen').onclick=()=>{gPv={};showHub('garagePanel');renderGarage()};
  const SHIPLV={viper:5,titan:8,comet:11,reaper:14,chrono:17,sovereign:22};
  function xpNeed(l){return 150+l*50}
  function plv(){let x=meta.xp||0,l=1;while(l<40&&x>=xpNeed(l)){x-=xpNeed(l);l++}return l}
@@ -560,6 +562,65 @@ const CODE_KEY='gf_code',ALPH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
  $('codeCopy').onclick=async()=>{try{await navigator.clipboard.writeText(myCode());msg('Code copied. Keep it somewhere safe!')}catch(e){shown=true;showCode();msg('Copy it manually from the box above.')}};
  $('backupNow').onclick=async()=>{msg('Backing up…');msg(await backupNow()?'Backup saved ☁':'Backup failed. Check your Supabase setup (see console).');renderProfile()};
  $('restoreBtn').onclick=restore;myCode();setAccountStatus();document.querySelector('[data-rank="friends"]')?.remove();
+ WNGS.push({id:'dragon',n:'DRAGON WINGS',d:'+5% damage · +6% hull',cost:2800,p:{dmg:1,hull:1}},{id:'crystal',n:'CRYSTAL SHARDS',d:'+6% crit chance',cost:2400,p:{crit:2}},{id:'flame',n:'FLAME WINGS',d:'+6% fire rate · living fire',cost:3000,p:{fr:2}});
+ EXTS.push({id:'sat',n:'SATELLITES',d:'3 orbiting orbs',cost:900,fx:'sat'},{id:'hex',n:'HEX BARRIER',d:'Rotating energy hex',cost:1200,fx:'hex'});
+ const MOUNTS=[{id:'none',n:'NO HARDPOINTS',d:'Clean hull',cost:0},
+ {id:'gat',n:'TWIN GATLING',d:'Auto side bullets · +3% fire rate',cost:1100,iv:.22,p:{fr:1},fire:(x,y)=>[-1,1].forEach(s=>bullets.push({x:x+s*15,y:y-8,vx:s*20,vy:-600,r:2.5,damage:.6,color:'#ffe66d'}))},
+ {id:'pods',n:'MISSILE PODS',d:'Homing missiles every 1.6s',cost:1600,iv:1.6,fire:(x,y)=>[-1,1].forEach(s=>bullets.push({x:x+s*19,y:y-2,vx:s*60,vy:-300,r:4,damage:2,color:'#ff8a6b',homing:true}))},
+ {id:'laser',n:'LASER LANCES',d:'Piercing beams every 1.2s',cost:2000,iv:1.2,fire:(x,y)=>[-1,1].forEach(s=>bullets.push({x:x+s*21,y:y-12,vx:0,vy:-900,r:3,h:28,damage:1.6,color:'#7df1ff',pierce:1}))},
+ {id:'orbs',n:'PLASMA ORBS',d:'Heavy orbs every 1.4s · +5% damage',cost:2400,iv:1.4,p:{dmg:1},fire:(x,y)=>[-1,1].forEach(s=>bullets.push({x:x+s*26,y:y-6,vx:0,vy:-380,r:8,damage:3,color:'#c79bff'}))},
+ {id:'rail',n:'RAILGUN',d:'Huge piercing slug every 2.5s',cost:3200,iv:2.5,fire:(x,y)=>bullets.push({x,y:y-30,vx:0,vy:-1100,r:6,h:44,damage:6,color:'#fff',pierce:1})}];
+ let mountT=0;
+ function mountTick(dt){const id=(meta.cust||{}).mount;if(!id||id==='none'||state!=='playing')return;mountT-=dt;if(mountT>0)return;const M=MOUNTS.find(x=>x.id===id);if(!M)return;mountT=M.iv;M.fire(player.x,player.y)}
+ function engDraw(c,id,fl){const t=performance.now()/1000,z=engSz({engine:id}),L={plasma:[-8,8],inferno:[-10,0,10],void:[0],prism:[-11,-4,4,11]}[id]||[-6.5,6.5],w=id==='void'?4.5:id==='solar'?3.2:2.5;
+  L.forEach((x,i)=>{const len=(10+Math.sin(t*22+i*1.7)*2.5)*z;c.fillStyle='#24385e';c.fillRect(x-w-1,9,w*2+2,5);c.fillStyle='#4a6a9a';c.fillRect(x-w-1,9,w*2+2,1);
+   c.fillStyle=fl;c.globalAlpha=.45;c.beginPath();c.moveTo(x-w-1,14);c.lineTo(x+w+1,14);c.lineTo(x,14+len*1.35);c.fill();c.globalAlpha=1;
+   c.beginPath();c.moveTo(x-w,14);c.lineTo(x+w,14);c.lineTo(x,14+len);c.fill();c.fillStyle='#fff';c.beginPath();c.moveTo(x-w*.45,14);c.lineTo(x+w*.45,14);c.lineTo(x,14+len*.55);c.fill();
+   if(id==='plasma'){c.strokeStyle=fl;c.lineWidth=1;c.beginPath();c.ellipse(x,18+((t*30+i*5)%10),w+1,1.5,0,0,7);c.stroke()}
+   if(id==='void'){c.fillStyle=fl;const a=t*8;c.fillRect(x+Math.cos(a)*7-1,18+Math.sin(a)*3-1,2,2);c.fillRect(x-Math.cos(a)*7-1,18-Math.sin(a)*3-1,2,2)}})}
+ function wingsDraw(c,id,col){if(!id||id==='stock')return;const t=performance.now()/1000,
+  P=(pts,f,s)=>{for(const m of[1,-1]){c.beginPath();pts.forEach((p,i)=>c[i?'lineTo':'moveTo'](p[0]*m,p[1]));c.closePath();c.fillStyle=f;c.fill();if(s){c.strokeStyle=s;c.lineWidth=1;c.stroke()}}},
+  R=(x,y,w,h,k)=>{c.fillStyle=k;c.fillRect(x,y,w,h);c.fillRect(-x-w,y,w,h)},
+  D=(x,y,r,k)=>{c.fillStyle=k;c.shadowBlur=6;c.shadowColor=k;c.globalAlpha=.55+.45*Math.sin(t*6);for(const m of[1,-1]){c.beginPath();c.arc(x*m,y,r,0,7);c.fill()}c.globalAlpha=1;c.shadowBlur=0};
+  c.save();c.shadowBlur=5;c.shadowColor=col;
+  if(id==='blades'){P([[13,-2],[36,-12],[31,-3],[38,5],[27,5],[13,9]],'#1b2d55',col);P([[16,0],[30,-7],[27,0],[16,4]],col);R(17,1,12,1,'#fff');D(36,-11,1.6,'#fff')}
+  else if(id==='feather'){for(let i=0;i<4;i++)P([[13,-6+i*4],[26+i*3,-12+i*5],[24+i*3,-7+i*5],[13,-2+i*4]],i%2?col:'#e8fbff','#0a1630');D(35,-2,1.5,col)}
+  else if(id==='bat'){P([[13,-6],[24,-17],[27,-6],[33,-11],[35,3],[28,0],[24,11],[13,7]],'#2a1346',col);R(14,-1,18,1,col);R(14,3,12,1,col);D(34,3,1.5,'#ff4d6d')}
+  else if(id==='cannons'){P([[13,-3],[25,-1],[25,12],[13,12]],'#1b2d55',col);R(23,-14,3,18,'#9aa7b8');R(24,-16,1,3,'#fff');R(15,2,8,1,col);D(24,-16,1.5,'#ffd66b')}
+  else if(id==='mech'){P([[13,-5],[31,-5],[36,2],[36,15],[13,15]],'#4a5668','#c4d0e0');R(17,-1,12,2,col);R(17,5,12,2,'#9aa7b8');R(17,10,12,2,col);R(32,0,2,12,'#2b3445');D(34,-3,1.5,'#7df1ff')}
+  else if(id==='angel'){c.shadowBlur=10;for(let i=0;i<4;i++)P([[13,-4+i*3],[34+i*2,-22+i*5],[31+i*2,-8+i*4],[13,2+i*3]],i%2?'#ffffff':'#d8f2ff');D(36,-20,1.8,'#ffe66d')}
+  else if(id==='dragon'){P([[13,-6],[22,-22],[27,-10],[34,-18],[37,-2],[32,2],[36,12],[13,8]],'#5a1020','#ff7a3d');R(15,-2,20,1,'#ff7a3d');R(15,3,14,1,'#ff7a3d');D(22,-21,1.6,'#ffd66b')}
+  else if(id==='crystal'){P([[13,-2],[22,-18],[28,-4],[33,-10],[32,6],[22,10],[13,8]],'#6fd6ff88','#fff');R(20,-6,1,12,'#fff');R(26,-4,1,8,'#bff');D(30,-8,1.5,'#fff')}
+  else if(id==='flame'){for(let i=0;i<5;i++){const h=10+Math.sin(t*10+i)*4;P([[13,i*3-4],[22+i*2,i*3-4-h*.4],[13+h+i,i*3]],i%2?'#ffd66b':'#ff7a3d')}}
+  c.restore()}
+ function mountDraw(c,id,col){if(!id||id==='none')return;const t=performance.now()/1000,B='#1b2d55',M='#9aa7b8',mir=f=>{for(const s of[1,-1]){c.save();c.scale(s,1);f();c.restore()}};c.save();
+  if(id==='gat')mir(()=>{c.fillStyle=B;c.fillRect(13,-12,7,16);c.fillStyle=M;c.fillRect(14,-19,2,8);c.fillRect(17,-19,2,8);c.fillStyle=col;c.fillRect(13,-12,7,1);c.fillStyle='#ffe66d';c.fillRect(14+(Math.floor(t*20)%2)*3,-21,2,2)});
+  else if(id==='pods')mir(()=>{c.fillStyle=B;c.fillRect(17,-8,9,18);c.strokeStyle=col;c.lineWidth=1;c.strokeRect(17.5,-7.5,8,17);for(let i=0;i<2;i++)for(let j=0;j<3;j++){c.fillStyle='#07102a';c.fillRect(19+i*3.5,-5+j*5,2.5,3.5);c.fillStyle='#ff8a6b';c.fillRect(19+i*3.5,-5+j*5,2.5,1.5)}});
+  else if(id==='laser')mir(()=>{c.fillStyle=B;c.fillRect(19,-6,4,16);c.fillStyle=M;c.fillRect(20,-24,2,20);c.shadowBlur=8;c.shadowColor=col;c.fillStyle=col;c.beginPath();c.arc(21,-25,2+Math.sin(t*8)*.8,0,7);c.fill()});
+  else if(id==='orbs')mir(()=>{const y=-2+Math.sin(t*3)*3;c.fillStyle=M;c.fillRect(14,y,10,1);c.strokeStyle=col;c.lineWidth=1;c.beginPath();c.arc(28,y,7,0,7);c.stroke();c.shadowBlur=10;c.shadowColor=col;c.fillStyle=col;c.beginPath();c.arc(28,y,4.5,0,7);c.fill();c.fillStyle='#fff';c.beginPath();c.arc(27,y-1,1.8,0,7);c.fill()});
+  else if(id==='rail'){c.fillStyle=B;c.fillRect(-6,-12,12,4);c.fillStyle=M;c.fillRect(-2,-34,4,24);for(let i=0;i<4;i++){c.fillStyle=col;c.fillRect(-4,-31+i*5,8,2)}c.fillStyle='#fff';c.fillRect(-1,-38,2,5)}
+  c.restore()}
+ let gPv={},gRaf=0;
+ const GS={engine:{arr:ENGS,pre:'e:',def:'stock'},wings:{arr:WNGS,pre:'w:',def:'stock'},mount:{arr:MOUNTS,pre:'m:',def:'none'},extra:{arr:EXTS,pre:'x:',def:'none'}};
+ function gMix(){const c={...(meta.cust||{})};for(const k in gPv)c[k]=gPv[k]||undefined;return c}
+ function gOwn(k,id){const p=GS[k].arr.find(x=>x.id===id);return !p||!p.cost||(meta.parts||[]).includes(GS[k].pre+id)}
+ function gCost(){let t=0;for(const k in gPv)if(GS[k]&&!gOwn(k,gPv[k]))t+=GS[k].arr.find(x=>x.id===gPv[k]).cost;return t}
+ function gApply(){const t=gCost();if((pilot.credits||0)<t){toast('NOT ENOUGH CREDITS');return}pilot.credits-=t;const parts=[...(meta.parts||[])],c={...(meta.cust||{})};for(const k in gPv){const v=gPv[k];if(GS[k]&&v!==GS[k].def&&!parts.includes(GS[k].pre+v))parts.push(GS[k].pre+v);c[k]=v||undefined}meta.parts=parts;meta.cust=c;gPv={};saveLocal();saveMeta();toast(t?'PARTS INSTALLED':'EQUIPPED');renderGarage()}
+ function gBar(){const b=$('garBar');if(!b)return;const ks=Object.keys(gPv);if(!ks.length){b.textContent='👁 TAP A PART TO PREVIEW IT ON YOUR SHIP · CREDITS '+(pilot.credits||0);return}const t=gCost(),names=ks.map(k=>GS[k]?GS[k].arr.find(x=>x.id===gPv[k]).n:(k==='c1'?'BODY':'ACCENT')+' PAINT').join(' + ');b.innerHTML='<div style="margin-bottom:6px">'+escapeHtml(names)+'</div>';const a=document.createElement('button');a.className='hubAction';a.textContent=t?'BUY & EQUIP · '+t+' CR':'EQUIP';a.onclick=gApply;const c=document.createElement('button');c.className='hubAction';c.style.marginLeft='8px';c.textContent='✕ CANCEL';c.onclick=()=>{gPv={};renderGarage()};b.append(a,c)}
+ function garTick(){if($('garagePanel').classList.contains('hidden')){gRaf=0;return}const id=pilot.equipped_ship||'scout',gx=$('garShip').getContext('2d'),t=performance.now()/1000,col=SHIPCOL[id]||'#65efff';gx.clearRect(0,0,220,200);const g=gx.createRadialGradient(110,100,6,110,100,100);g.addColorStop(0,col+'44');g.addColorStop(1,'#0000');gx.fillStyle=g;gx.fillRect(0,0,220,200);
+  PREV=gMix();pixelShip(110,100+Math.sin(t*2)*3,2.4,col,id,gx);const fx=FXS(curSkin(),PREV).fx||'';PREV=null;
+  if(/spark|trail/.test(fx)){gx.fillStyle=col;for(let i=0;i<8;i++){const ph=(t*1.3+i/8)%1;gx.globalAlpha=1-ph;gx.fillRect(110+Math.sin(i*7.3)*18,150+ph*40,3,3)}gx.globalAlpha=1}
+  gRaf=requestAnimationFrame(garTick)}
+ function renderGarage(){const id=pilot.equipped_ship||'scout',cv=$('garShip');
+  if(cv.width!==220){cv.width=220;cv.height=200;cv.style.cssText='width:200px;height:182px;margin:0 auto';const w=cv.parentNode;w.style.cssText='text-align:center;position:sticky;top:34px;z-index:2;background:#09152ff2;padding:4px 0 6px;border-bottom:1px solid #203b5e';const b=document.createElement('div');b.id='garBar';b.className='hubNotice';w.appendChild(b)}
+  if(!gRaf)gRaf=requestAnimationFrame(garTick);
+  const tabs=$('garTabs');tabs.innerHTML='';[['engine','ENGINE'],['wings','WINGS'],['mount','WEAPONS'],['extra','EXTRAS'],['paint','PAINT']].forEach(([k,n])=>{const b=document.createElement('button');b.className='hubTab'+(gTab===k?' active':'');b.textContent=n;b.onclick=()=>{gTab=k;renderGarage()};tabs.appendChild(b)});
+  gBar();const host=$('garRows');host.innerHTML='';const cur=gMix();
+  if(gTab==='paint'){[['c1','BODY COLOR'],['c2','ACCENT COLOR']].forEach(([k,n])=>{const row=document.createElement('div');row.innerHTML='<div class="hubSub" style="margin-top:12px">'+n+' · FREE</div>';const sw=document.createElement('div');sw.style.cssText='display:flex;flex-wrap:wrap;gap:8px';['',...PAL].forEach(c=>{const b=document.createElement('button');b.style.cssText='width:34px;height:34px;border-radius:8px;border:2px solid '+((cur[k]||'')===c?'#fff':'#345878')+';background:'+(c||'#101f3a')+';color:#9bb5d5;font:900 9px monospace';b.textContent=c?'':'AUTO';b.onclick=()=>{if(((meta.cust||{})[k]||'')===c)delete gPv[k];else gPv[k]=c;renderGarage()};sw.appendChild(b)});row.appendChild(sw);host.appendChild(row)});return}
+  const g=GS[gTab];g.arr.forEach(p=>{const eq=((meta.cust||{})[gTab]||g.def)===p.id,pv=gPv[gTab]===p.id,own=gOwn(gTab,p.id),row=document.createElement('div');row.className='hubRow';if(pv)row.style.cssText='background:#12334a;border-left:3px solid #65efff;padding-left:6px';
+   row.innerHTML='<canvas class="pv" width="48" height="48"></canvas><div style="flex:1"><b>'+p.n+'</b><small>'+p.d+' · '+(own?'✓ OWNED':p.cost+' CR')+'</small></div><button class="hubAction">'+(eq?'EQUIPPED':pv?'VIEWING':'PREVIEW')+'</button>';
+   const x=row.querySelector('.pv').getContext('2d');x.fillStyle='#071126';x.fillRect(0,0,48,48);PREV={...(meta.cust||{}),[gTab]:p.id};pixelShip(24,30,.8,SHIPCOL[id]||'#65efff',id,x);PREV=null;row.querySelector('button').disabled=eq;
+   row.onclick=()=>{if(eq)delete gPv[gTab];else gPv[gTab]=p.id;renderGarage()};host.appendChild(row)})}
  const keys={};
  addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys[k]=true;if(state==='playing'&&(k===' '||k==='b')){e.preventDefault();bomb()}if(state==='playing'&&(k==='e'||k==='shift'))skill();if(k==='escape'&&document.querySelector('.hubPanel:not(.hidden)')){backMenu();return}if(k==='p'||k==='escape'){state==='playing'?pause():resume()}if(k==='enter'&&state==='menu'&&!menu.classList.contains('hidden'))start()});
  addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false});
