@@ -324,7 +324,7 @@ $('game').addEventListener('touchmove',e=>{if(!e.target.closest('.hubPanel'))e.p
  const localKey='gf_pilot_v1';
  let pilot={name:'Rookie Pilot',credits:0,crystals:0,weapon_level:1,hull_level:1,engine_level:1,shield_level:1,equipped_ship:'scout',unlocked_ships:['scout'],friend_code:'OFFLINE',user_id:null};
  let rankMode='global';
- const metaKey='gf_v3_meta';
+ let bkT=0,lastBk=localStorage.getItem('gf_lastbk')||'',shown=false;const metaKey='gf_v3_meta';
  let meta={drone:false,missions:{kills:0,bosses:0,survive:0},claimed:{}};
  try{meta={...meta,...JSON.parse(localStorage.getItem(metaKey)||'{}')}}catch(e){}
  const today=new Date().toISOString().slice(0,10);if(meta.day!==today){meta.day=today;meta.missions={kills:0,bosses:0,survive:0};meta.claimed={};saveMeta()}
@@ -495,7 +495,7 @@ const CODE_KEY='gf_code',ALPH='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
  function myCode(){let c=localStorage.getItem(CODE_KEY);if(!c){c=newCode();localStorage.setItem(CODE_KEY,c)}return c}
  async function codeHash(c){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('gf1:'+c.replace(/[^A-Z0-9]/gi,'').toUpperCase()));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
  function cloudOK(){return !!(sb&&window.crypto&&crypto.subtle)}
- let bkT=0,lastBk=localStorage.getItem('gf_lastbk')||'',shown=false;
+ 
  async function backupNow(){if(!cloudOK())return false;try{const p={...pilot};delete p.user_id;const {error}=await sb.rpc('gf_save',{p_hash:await codeHash(myCode()),p_data:{v:1,pilot:p,meta,best}});if(error)throw error;lastBk=new Date().toLocaleString();localStorage.setItem('gf_lastbk',lastBk);return true}catch(e){console.warn('backup failed:',e.message||e);return false}}
  function backupSoon(){clearTimeout(bkT);bkT=setTimeout(backupNow,4000)}
  async function cloudSubmit(sc,sec,bo,du){if(!cloudOK())return;try{await sb.rpc('gf_submit',{p_hash:await codeHash(myCode()),p_name:pilot.name,p_score:sc,p_sector:sec,p_bosses:bo,p_duration:du})}catch(e){console.warn('score sync failed:',e.message||e)}}
